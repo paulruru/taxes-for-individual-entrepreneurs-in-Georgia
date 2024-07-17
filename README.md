@@ -1,0 +1,1 @@
+# taxes-for-individual-entrepreneurs-in-Georgia
