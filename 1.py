@@ -1,139 +1,152 @@
-#https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/?date=2024-07-12
 from requests import get
 from json import loads
 from time import localtime
 
+class Date:
+    def __init__(self, day, month, year):
+        self.day = day
+        self.month = month
+        self.year = year
 
+    @staticmethod
+    def check_month(input_value):
+        months = {'january': '01', 'february': '02', 'march': '03', 'april': '04', 'may': '05', 'june': '06', 'july': '07', 'august': '08', 'september': '09', 'october': '10', 'november': '11', 'december': '12'}
+        if input_value.isdigit() and 0 < int(input_value) <= 12:
+            return ('0'*(int(input_value)<10)) + input_value
+        elif input_value in list(months.keys()):
+            return months[input_value]
+        print('\nInvalid input, month not found')
+        return Date.check_month(input('\nEnter income month (e.g., \'09\' or \'september\'): ').lower())
 
+    @staticmethod
+    def check_day(input_value, month, year):
+        try:
+            input_value = int(input_value)
+            max_days = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][int(month)-1]
+            if (month == '02') and not (year % 4):
+                max_days += 1
+            if not (0 < input_value <= max_days):
+                print('\nInvalid input, day does not exist')
+                return Date.check_day(input('\nEnter income day (e.g., \'09\' or \'9\'): '), int(month), int(year))
+            return ('0'*(input_value < 10)) + str(input_value)
+        except:
+            print('\nInvalid input, enter a number')
+            return Date.check_day(input('\nEnter income day (e.g., \'09\' or \'9\'): '), int(month), int(year))
 
-def currencycheck(inp):
-    if inp not in ['usd', 'eur', 'gel', '1', '2', '3', '1usd', '2eur', '3gel']:
-        print('\nНекоректный ввод, такой валюты нет')
-        inp = currencycheck(input('\n1. USD\n2. EUR\n3. GEL\nВыберите валюту: ').lower().replace(' ', ''))
-    try:
-        return ['usd', 'eur', 'gel'][int(inp)-1]
-    except:
-        return inp
+    @staticmethod
+    def check_year(input_value):
+        try:
+            input_value = int(input_value)
+            if not(2016 <= input_value <= localtime()[0]):
+                print('\nInvalid input, year not supported')
+                return Date.check_year(input('\nEnter the year for which you want to calculate taxes: '))
+            return input_value
+        except:
+            print('\nInvalid input, enter a number')
+            return Date.check_year(input('\nEnter the year for which you want to calculate taxes: '))
 
+class Money:
+    def __init__(self, amount, currency):
+        self.amount = amount
+        self.currency = currency
 
-def amountcheck(inp):
-    try:
-        inp = int(inp)
-        return inp
-    except:
-        print('\nНекоректный ввод, введите число')
-        inp = amountcheck(input('\nВведите сумму дохода: '))
+    @staticmethod
+    def check_amount(input_value):
+        try:
+            return int(input_value)
+        except:
+            print('\nInvalid input, enter a number')
+            return Money.check_amount(input('\nEnter the income amount: '))
 
+    @staticmethod
+    def check_currency(input_value):
+        valid_currencies = ['usd', 'eur', 'gel', '1', '2', '3', '1usd', '2eur', '3gel']
+        if input_value not in valid_currencies:
+            print('\nInvalid input, currency not found')
+            input_value = Money.check_currency(input('\n1. USD\n2. EUR\n3. GEL\nChoose currency: ').lower().replace(' ', ''))
+        try:
+            return ['usd', 'eur', 'gel'][int(input_value)-1]
+        except:
+            return input_value
 
-def yearcheck(inp):
-    try:
-        inp = int(inp)
-        if not(2016 <= inp <= localtime()[0]):
-            print('\nНекоректный ввод, такой год не поддерживается')
-            inp = yearcheck(input('\nВведите год за который вы хотите рассчитать налог: '))
-        return inp
-    except:
-        print('\nНекоректный ввод, введите число')
-        inp = yearcheck(input('\nВведите год за который вы хотите рассчитать налог: '))
+class Transaction:
+    def __init__(self, date, money):
+        self.date = date
+        self.money = money
 
+    def convert_to_gel(self):
+        currencies = loads(get(f'https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/?date={self.date.year}-{self.date.month}-{self.date.day}').text)
+        amount = self.money.amount
+        currency = self.money.currency
+        rate = 1
+        symbols = {'usd': '$', 'eur': '€', 'gel': '₾'}
+        if currency == 'usd':
+            rate = currencies[0]['currencies'][40]['rate'] / currencies[0]['currencies'][40]['quantity']
+            amount *= rate
+        elif currency == 'eur':
+            rate = currencies[0]['currencies'][13]['rate'] / currencies[0]['currencies'][13]['quantity']
+            amount *= rate
+        print(f'\nCurrency: {currency}\nDate: {self.date.day}/{self.date.month}/{self.date.year}\nAmount: {self.money.amount}{symbols.get(currency, "")}'+ f' * {rate} = {round(amount, 2)}₾'*(currency in ['usd', 'eur']))
+        return amount
 
-def valuecheck(inp):
-    if inp not in ['1', '2', '3', 'добавитьдоход', 'перезапустить', 'выйти', '1добавитьдоход', '2перезапустить', '3выйти']:
-        print('\nНекоректный ввод, такого действия нет')
-        inp = valuecheck(input('\n1. Добавить доход\n2. Перезапустить\n3. Выйти\nВыберите действие: ').lower().replace(' ', '').replace('.', ''))
+def value_check(inp):
+    valid_values = ['1', '2', 'calculatetaxes', 'addmoreincome', '1calculatetaxes', '2addmoreincome']
+    if inp not in valid_values:
+        print('\nInvalid input, such action does not exist')
+        inp = value_check(input('\n1. Calculate taxes\n2. Add more income\nChoose action: ').lower().replace(' ', '').replace('.', ''))
     return inp
 
+def check_action(input_value):
+    valid_actions = ['1', '2', '3', 'addincome', 'restart', 'exit', '1addincome', '2restart', '3exit']
+    if input_value not in valid_actions:
+        print('\nInvalid input, action not found')
+        input_value = check_action(input('\n1. Add income\n2. Restart\n3. Exit\nChoose action: ').lower().replace(' ', '').replace('.', ''))
+    return input_value
 
-def actioncheck(inp):
-    if inp not in ['1', '2', 'рассчитатьналоги', 'добавитьещёдоход', '1рассчитатьналоги', '2добавитьещёдоход']:
-        print('\nНекоректный ввод, такого действия нет')
-        inp = actioncheck(input('\n1. Рассчитать\n2. Добавить ещё доход\nВыберите действие: ').lower().replace(' ', '').replace('.', ''))
-    return inp
+def check_action2(input_value):
+    valid_actions2 = ['1', '2', 'restart', 'exit', '1restart', '2exit']
+    if input_value not in valid_actions2:
+        print('\nInvalid input, action not found')
+        return check_action2(input('\n1. Restart\n2. Exit\nChoose action: ').lower().replace(' ', '').replace('.', ''))
+    return input_value
 
-
-def monthcheck(inp):
-    try:
-        inp = int(inp)
-        months = {1: '01', 2: '02', 3: '03', 4: '04', 5: '05', 6: '06', 7: '07', 8: '08', 9: '09', 10: '10', 11: '11', 12: '12'}
-    except:
-        months = {'январь': '01', 'февраль': '02', 'март': '03', 'апрель': '04', 'май': '05', 'июнь': '06', 'июль': '07', 'август': '08', 'сентябрь': '09', 'октябрь': '10', 'ноябрь': '11', 'декабрь': '12'}
-    if inp not in list(months.keys()):
-        print('\nНекоректный ввод, такого месяца нет')
-        inp = monthcheck(input('\nВведите месяц дохода(пример: \'09\' или \'сентябрь\'): ').lower())
-    return months[inp]
-
-
-def daycheck(inp, month, year):
-    try:
-        inp = int(inp)
-        maximum = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1]
-        if (month == '02') and not(year%4):
-            maximum += 1
-        if not(0 < inp <= maximum): 
-            print('\nНекоректный ввод, такого дня не существует')
-            inp = daycheck(input('\nВведите день дохода(пример: \'9\'): '), int(month), int(year))
-        return ('0'*(inp<10)) + str(inp)
-    except:
-        print('\nНекоректный ввод, введите число')
-        inp = daycheck(input('\nВведите день дохода(пример: \'9\'): '), int(month), int(year))
-    
-
-def action2check(inp):
-    if inp not in ['1', '2', 'перезапустить', 'выйти', '1перезапустить', '2выйти']:
-        print('\nНекоректный ввод, такого действия нет')
-        inp = action2check(input('\n1. Перезапустить\n2. Выйти\nВыберите действие: ').lower().replace(' ', '').replace('.', ''))
-    else:
-        return inp
-
-
-def transaction(currency, year, transactions):
-    month = monthcheck(input('\nВведите месяц дохода(пример: \'09\' или \'сентябрь\'): ').lower())
-    day = daycheck(input('\nВведите день дохода(пример: \'09\'): '), int(month), int(year))
-    amount = amountcheck(input('\nВведите сумму дохода: '))
-    amountcopy = amount 
-    currencies = loads(get(f'https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/?date={year}-{month}-{day}').text)
-    cur, simb = 1, {'usd': '$', 'eur': '€'}
-    if currency == 'usd':
-        cur = currencies[0]['currencies'][40]['rate'] / currencies[0]['currencies'][40]['quantity']
-        amount *= cur
-    elif currency == 'eur':
-        cur = currencies[0]['currencies'][13]['rate'] / currencies[0]['currencies'][13]['quantity']
-        amount *= cur
-    print(f'\nВалюта: {currency}\nДата: {day}/{month}/{year}\nСумма: {amountcopy}{simb[currency]}'+ f' * {cur} = {round(amount, 2)}₾'*(currency in ['usd', 'eur']))
-    transactions.append([currency, year, month, day, amount])
-    action = actioncheck(input('\n1. Рассчитать налоги\n2. Добавить ещё доход\nВыберите действие: ').lower().replace(' ', '').replace('.', ''))
-    if action in ['1', 'рассчитатьналоги', '1.рассчитатьналоги']:
-        allamount = sum([transaction[4] for transaction in transactions])
-        overallamount = round(allamount/100, 2)
-        if allamount <= 140000:
-           print(f'\nВ этом году вам нужно заплатить: {round(allamount, 2)} * 1% = {overallamount}₾')
+def process_transaction(currency, year, transactions):
+    month = Date.check_month(input('\nEnter income month (e.g., \'09\' or \'september\'): ').lower())
+    day = Date.check_day(input('\nEnter income day (e.g., \'09\' or \'9\'): '), month, year)
+    amount = Money.check_amount(input('\nEnter the income amount: '))
+    date = Date(day, month, year)
+    money = Money(amount, currency)
+    transaction = Transaction(date, money)
+    amount_in_gel = transaction.convert_to_gel()
+    transactions.append(amount_in_gel)
+    action = value_check(input('\n1. Calculate taxes\n2. Add more income\nChoose action: ').lower().replace(' ', '').replace('.', ''))
+    if action in ['1', 'calculatetaxes', '1calculatetaxes']:
+        total_amount = sum(transactions)
+        final_amount = round(total_amount / 100, 2)
+        if total_amount <= 140000:
+            print(f'\nThis year you need to pay: {round(total_amount, 2)}₾ * 1% = {final_amount}₾')
         else:
-            print(f'\nВ этом году вам нужно заплатить: не знаю сколько лари')
-        action2 = action2check(input('\n1. Перезапустить\n2. Выйти\nВыберите действие: ').lower().replace(' ', '').replace('.', ''))
-        if action2 in ['2', 'выйти', '3выйти']:
+            print(f'\nThis year you need to pay: not sure how much GEL')
+            #дописать
+        action2 = check_action2(input('\n1. Restart\n2. Exit\nChoose action: ').lower().replace(' ', '').replace('.', ''))
+        if action2 in ['2', 'exit', '2exit']:
             exit()
-        elif action2 in ['1', 'перезапустить', '1перезапустить']:
+        elif action2 in ['1', 'restart', '1restart']:
             main()
-    elif action in ['2', 'добавитьещёдоход', '2.добавитьещёдоход']:
-        transaction(currency, year, transactions)
-    
+    elif action in ['2', 'addmoreincome', '2addmoreincome']:
+        process_transaction(currency, year, transactions)
 
 def main():
-    #try:
-    print('\nЗдравствуйте, эта программа поможет вам рассчитать налоги предпринимателя')
-    currency = currencycheck(input('\n1. USD\n2. EUR\n3. GEL\nВыберите валюту: ').lower().replace(' ', '').replace('.', ''))
-    year = yearcheck(input('\nВведите год за который вы хотите рассчитать налог: '))
-    value = valuecheck(input('\n1. Добавить доход\n2. Перезапустить\n3. Выйти\nВыберите действие: ').lower().replace(' ', '').replace('.', ''))
-    if value in ['3', 'выйти', '3выйти']:
+    print('\nHello, this program will help you calculate entrepreneur taxes')
+    currency = Money.check_currency(input('\n1. USD\n2. EUR\n3. GEL\nChoose currency: ').lower().replace(' ', '').replace('.', ''))
+    year = Date.check_year(input('\nEnter the year for which you want to calculate taxes: '))
+    action = check_action(input('\n1. Add income\n2. Restart\n3. Exit\nChoose action: ').lower().replace(' ', '').replace('.', ''))
+    if action in ['3', 'exit', '3exit']:
         exit()
-    elif value in ['2', 'перезапустить', '2перезапустить']:
-         main()
-    elif value in ['1', 'добавитьдоход', '1добавитьдоход']:
+    elif action in ['2', 'restart', '2restart']:
+        main()
+    elif action in ['1', 'addincome', '1addincome']:
         transactions = []
-        transaction(currency, year, transactions)
-    '''except:
-        print('Что-то пошло не так, попрубуйте снова')
-        main()'''
-
+        process_transaction(currency, year, transactions)
 
 main()
