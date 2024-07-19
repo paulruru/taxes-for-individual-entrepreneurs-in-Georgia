@@ -1,55 +1,50 @@
-Program Specification
-Overview
-This program assists users in calculating taxes for entrepreneurial income by converting amounts from various currencies to Georgian Lari (GEL) and determining the tax owed based on the total income for a specified year. The program allows users to input multiple transactions, convert them to GEL, and calculate the applicable taxes.
+Program Specification - Entrepreneur Tax Calculator
+This document outlines the functionalities and design of a program that assists Georgian entrepreneurs with calculating their annual income tax.
 
-Components
-Classes
+1. Functionality
 
-Date
+The program helps users calculate their annual income tax based on user-provided income details. Here are the key functionalities:
 
-Handles date validation and formatting.
-Methods:
-__init__(self, day, month, year): Initializes the date with day, month, and year.
-check_month(input_value): Validates and formats the month input.
-check_day(input_value, month, year): Validates and formats the day input considering month and leap years.
-check_year(input_value): Validates the year input within a supported range.
-Money
+User enters income details:
+Income amount
+Income currency (USD, EUR, or GEL)
+Income date (day, month, year)
+Program validates user input for data integrity (e.g., valid date format, currency code).
+Program retrieves daily exchange rates for USD and EUR (if income currency is not GEL) using an external API.
+Program converts income amount to GEL based on retrieved exchange rates.
+Program simulates a basic tax calculation based on a pre-defined income threshold (currently set at 140,000 GEL). Note: This is a simplified calculation and may not reflect actual tax regulations.
+Users can add multiple income entries throughout the year.
+2. Technical Specifications
 
-Manages currency and amount validation.
-Methods:
-__init__(self, amount, currency): Initializes the amount and currency.
-check_amount(input_value): Validates and formats the amount input.
-check_currency(input_value): Validates the currency input against a list of accepted values.
-Transaction
+Programming Language: Python (v3.x recommended)
+Libraries:
+requests - for making API calls to external currency exchange service.
+json - for parsing JSON data received from the API.
+time (optional) - for functionalities related to current date/time.
+3. Assumptions and Limitations
 
-Handles conversion of different currencies to GEL and displays conversion details.
-Methods:
-__init__(self, date, money): Initializes the transaction with date and money.
-convert_to_gel(self): Converts the transaction amount to GEL based on current exchange rates and prints the conversion details.
-Functions
+The program retrieves daily exchange rates. Fluctuations within the day are not considered.
+The current tax calculation is a simplified example and may not reflect actual Georgian tax regulations. Users should consult with a tax professional for accurate tax calculations.
+The program does not store user data or past calculations.
+4. User Interface
 
-get_valid_input(prompt, valid_options): Prompts the user for input and validates it against a list of acceptable options. Continues prompting until a valid input is received.
+The program uses a text-based command-line interface for user interaction.
 
-process_transaction(currency, year, transactions): Handles the input of transaction details (month, day, amount), creates a Transaction object, converts the amount to GEL, and updates the transaction list. Also manages the calculation of taxes and subsequent actions (calculate taxes, add more income, restart, or exit).
+5. Error Handling
 
-main(): The main entry point of the program. Handles initial user setup (currency and year), and manages user actions (add income, restart, exit). Calls process_transaction() to handle income data and tax calculations.
+The program implements basic input validation to ensure data integrity. Error messages are provided to guide users in case of invalid input.
 
-User Interaction
-Input Validation
+6. Testing
 
-Prompts the user to enter valid months, days, years, amounts, and currencies.
-Ensures input is correctly formatted and falls within acceptable ranges.
-Actions
+The program should include unit tests to verify the functionality of individual components (e.g., input validation, currency conversion).
 
-Add Income: Allows the user to enter additional income transactions and calculates taxes based on the accumulated income.
-Calculate Taxes: Computes the taxes due based on the total income and displays the result.
-Restart: Restarts the program, allowing the user to change currency or year.
-Exit: Terminates the program.
-Error Handling
-The program includes error handling for invalid input and network issues during currency conversion.
-Prompts the user to correct any invalid inputs and re-enter data as needed.
-External Dependencies
-Currency Conversion: Uses the National Bank of Georgia's API to obtain current exchange rates.
-Assumptions
-The API endpoint used for currency conversion is accessible and returns valid JSON data.
-The user provides valid and sensible inputs for all prompts.
+7. Deployment
+
+This program is designed to be run locally on a user's machine.
+
+8. Future Enhancements
+
+Integrate with a more comprehensive tax calculation API to reflect actual tax regulations.
+Implement a persistent storage mechanism to save user data and past calculations.
+Develop a graphical user interface (GUI) for a more user-friendly experience.
+This specification provides a high-level overview of the program's functionalities and design considerations.  More detailed technical specifications can be added based on the project's specific requirements.
